@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flight Path Anticipation Trainer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="theme-night">
+  <div id="app">
+    <section id="menuScreen" class="screen active">
+      <div class="menu-card">
+        <h1>Flight Path Anticipation Trainer</h1>
+        <p class="subtitle">Prevent collisions by deleting as few planes as possible.</p>
+
+        <div class="menu-grid">
+          <label class="field">
+            <span>Colour mode</span>
+            <select id="themeSelect">
+              <option value="night" selected>Night</option>
+              <option value="day">Day</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Max planes per round</span>
+            <select id="planeCountSelect">
+              <option>2</option>
+              <option>3</option>
+              <option>4</option>
+              <option selected>5</option>
+              <option>6</option>
+              <option>7</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Plane speed</span>
+            <select id="speedSelect">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3" selected>3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </label>
+
+          <label class="field checkbox-field">
+            <span>Maths overlay - answer with A/S/D/F</span>
+            <input id="mathToggle" type="checkbox" />
+          </label>
+
+          <label class="field checkbox-field">
+            <span>Main menu grid</span>
+            <input id="gridToggle" type="checkbox" checked />
+          </label>
+        </div>
+
+        <div class="mode-section">
+          <span class="mode-heading">Game mode</span>
+          <div class="mode-buttons" id="modeButtons">
+            <button class="mode-btn active" data-mode="unlimited">Unlimited play</button>
+            <button class="mode-btn" data-mode="lives">Lives system</button>
+            <button class="mode-btn" data-mode="rounds">Set rounds</button>
+          </div>
+        </div>
+
+        <div class="menu-grid secondary-grid">
+          <label class="field" id="livesField">
+            <span>Collisions until failure</span>
+            <input id="livesInput" type="number" min="1" max="20" step="1" value="5" />
+          </label>
+
+          <label class="field hidden" id="roundsField">
+            <span>Total rounds</span>
+            <input id="roundsInput" type="number" min="3" max="15" step="1" value="6" />
+          </label>
+        </div>
+
+        <div class="menu-actions">
+          <button id="startGameBtn" class="primary-btn">Start</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="gameScreen" class="screen">
+      <div id="gameAreaWrap">
+        <canvas id="gameCanvas"></canvas>
+        <div id="overlayMessage" class="overlay hidden"></div>
+      </div>
+
+      <div id="bottomPanel">
+        <div id="mathPanel">
+          <div class="panel-label">Maths area</div>
+          <div id="mathQuestionWrap" class="math-question-wrap inactive">
+            <div id="mathQuestionPrompt">Maths overlay is off.</div>
+            <div id="mathAnswers"></div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div id="uiPanel">
+          <div class="panel-label">Game UI</div>
+          <div class="stats-row">
+            <div class="stat-box"><span class="stat-label">Round</span><span id="roundStat" class="stat-value">0</span></div>
+            <div class="stat-box"><span class="stat-label">Total collisions</span><span id="collisionStat" class="stat-value">0</span></div>
+            <div class="stat-box"><span class="stat-label">Deleted this round</span><span id="deletedStat" class="stat-value">0</span></div>
+            <div class="stat-box"><span class="stat-label">Planes exited</span><span id="exitedStat" class="stat-value">0</span></div>
+          </div>
+          <div class="controls-row">
+            <button id="restartBtn">Start / Restart</button>
+            <button id="menuBtn">Menu</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="continueScreen" class="screen">
+      <div class="menu-card small-card">
+        <h2>Continue playing?</h2>
+        <p>You have finished another 6 rounds.</p>
+        <div class="menu-actions split-actions">
+          <button id="continueYesBtn" class="primary-btn">Yes</button>
+          <button id="continueNoBtn">No</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="scoreScreen" class="screen">
+      <div class="score-card">
+        <h2>Game Summary</h2>
+        <div id="scoreMeta" class="score-meta"></div>
+        <div class="table-wrap">
+          <table id="scoreTable">
+            <thead>
+              <tr>
+                <th>Round</th>
+                <th>Total planes</th>
+                <th>Deleted</th>
+                <th>Minimum deletions</th>
+                <th>Collisions</th>
+                <th>Rank score</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="menu-actions split-actions">
+          <button id="playAgainBtn" class="primary-btn">Play again</button>
+          <button id="scoreMenuBtn">Menu</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
