@@ -226,10 +226,66 @@ function pathHasEnoughTravel(length, speed) {
   return length >= CONFIG.minPathLength && (length / speed) >= CONFIG.minOnScreenTimeSec;
 }
 
+function getMinimumRoundPlaneCount() {
+  return state.maxPlanes >= 5 ? 3 : 2;
+}
+
 function pointInCentralSafeZone(point, width, height) {
   const insetX = width * CONFIG.safeConflictInsetRatio;
   const insetY = height * CONFIG.safeConflictInsetRatio;
   return point.x >= insetX && point.x <= width - insetX && point.y >= insetY && point.y <= height - insetY;
+}
+
+function lineIntersectsInnerPlayArea(start, end, width, height) {
+  const minX = width * CONFIG.safeConflictInsetRatio;
+  const maxX = width - minX;
+  const minY = height * CONFIG.safeConflictInsetRatio;
+  const maxY = height - minY;
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+
+  let t0 = 0;
+  let t1 = 1;
+
+  function clip(p, q) {
+    if (Math.abs(p) < 0.000001) return q >= 0;
+    const ratio = q / p;
+    if (p < 0) {
+      if (ratio > t1) return false;
+      if (ratio > t0) t0 = ratio;
+      return true;
+    }
+    if (ratio < t0) return false;
+    if (ratio < t1) t1 = ratio;
+    return true;
+  }
+
+  return clip(-dx, start.x - minX)
+    && clip(dx, maxX - start.x)
+    && clip(-dy, start.y - minY)
+    && clip(dy, maxY - start.y)
+    && t0 <= t1;
+}
+
+function classifyPlaneTrajectory(definition) {
+  const dx = definition.end.x - definition.start.x;
+  const dy = definition.end.y - definition.start.y;
+  return Math.abs(dx) >= Math.abs(dy) ? 'horizontal' : 'vertical';
+}
+
+function hasRequiredTrajectoryMix(definitions) {
+  let hasHorizontal = false;
+  let hasVertical = false;
+
+  definitions.forEach((definition) => {
+    if (classifyPlaneTrajectory(definition) === 'horizontal') {
+      hasHorizontal = true;
+    } else {
+      hasVertical = true;
+    }
+  });
+
+  return hasHorizontal && hasVertical;
 }
 
 function spawnConflictsWithExisting(definition, definitions) {
@@ -282,6 +338,7 @@ function makePlaneDefinition(index, delayMs, speedScale, width, height) {
     const length = Math.hypot(dx, dy);
     const speed = CONFIG.speedPxPerSec[state.speedLevel] * speedScale;
     if (!pathHasEnoughTravel(length, speed)) continue;
+    if (!lineIntersectsInnerPlayArea(start, end, width, height)) continue;
 
     const dirX = dx / length;
     const dirY = dy / length;
@@ -408,9 +465,10 @@ function planRoundDifficulty(roundNumber) {
 }
 
 function getRoundPlaneCount(roundNumber) {
+  const minPlanes = getMinimumRoundPlaneCount();
   if (roundNumber === 1) return Math.min(state.maxPlanes, Math.max(2, state.maxPlanes - 2));
-  if (roundNumber === 2) return Math.min(state.maxPlanes, Math.max(3, state.maxPlanes - 1));
-  return randInt(2, state.maxPlanes);
+  if (roundNumber === 2) return Math.min(state.maxPlanes, Math.max(minPlanes, state.maxPlanes - 1));
+  return randInt(minPlanes, state.maxPlanes);
 }
 
 function getSpawnSchedule(planeCount, difficultyLabel) {
@@ -446,6 +504,7 @@ function generateRoundPlan(roundNumber) {
   const { width, height } = getCanvasSize();
   const difficultyLabel = planRoundDifficulty(roundNumber);
   const planeCount = getRoundPlaneCount(roundNumber);
+  const minimumPlaneCount = getMinimumRoundPlaneCount();
   const zeroConflictStreak = countRecentZeroConflictRounds();
   const shouldPreferConflict = roundNumber > 2 && zeroConflictStreak < 2 && Math.random() < 0.78;
 
@@ -462,6 +521,7 @@ function generateRoundPlan(roundNumber) {
     }
 
     if (definitions.length !== planeCount) continue;
+    if (planeCount > 3 && !hasRequiredTrajectoryMix(definitions)) continue;
     if (hasSpawnSpacingIssues(definitions)) continue;
     if (countImmediateSpawnCollisions(definitions) > 0) continue;
     if (hasUnfairInteraction(definitions, width, height)) continue;
@@ -487,15 +547,17 @@ function generateRoundPlan(roundNumber) {
     };
   }
 
-  const fallbackCount = Math.min(state.maxPlanes, 2);
+  const fallbackCount = Math.min(state.maxPlanes, minimumPlaneCount);
   const definitions = [];
   for (let i = 0; i < fallbackCount; i += 1) {
-    definitions.push(makePlaneDefinition(i + 1, i * 900, 1, width, height));
+    const plane = makePlaneDefinition(i + 1, i * 900, 1, width, height);
+    if (!plane) break;
+    definitions.push(plane);
   }
   const graph = buildConflictGraph(definitions);
   const optimum = exactMinimumDeletions(graph);
   return {
-    planeCount: fallbackCount,
+    planeCount: definitions.length,
     definitions,
     conflictGraph: graph,
     minimumDeletions: optimum.count,
